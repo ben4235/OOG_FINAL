@@ -1,12 +1,12 @@
 class Player {
   //player position
-  float x, y;
+  float x, y;           
   //player size
-  float size;
+  float size;           
   //shooting availability
-  boolean canShoot;
+  boolean canShoot;     
   //reload time in milliseconds
-  int reloadTime;
+  int reloadTime;       
   //to check the time of last shot
   int lastShotTime;
 
@@ -32,7 +32,6 @@ class Player {
     if (canShoot) {
       //shoot towards the mouse direction
       bullets.add(new Bullet(x, y, mouseX, mouseY));
-      println("shooting");
       //disable the shooting
       canShoot = false;
       //record the time of the last shot
