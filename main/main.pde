@@ -1,87 +1,90 @@
 HealthBar healthBar;
 Player player;
-//arrays to track the bullets and enemies
+// arrays to track the bullets and enemies
 ArrayList<Bullet> bullets;
 ArrayList<Enemy> enemies;
-//score counter
+// score counter
 int score = 0;
+int highScore = 0;
 boolean gameOver = false;
-
 
 void setup() {
   size(400, 400);
 
-  //initialize the player and the healthbar
+  // initialize the player and the healthbar
   healthBar = new HealthBar(20, 20, 140, 20, 100);
-  //player in the center, reload time one second
+  // player in the center, reload time one second
   player = new Player(width / 2, height / 2, 30, 1000);
 
-  //initialize the array for both bullets and enemies
+  // initialize the array for both bullets and enemies
   bullets = new ArrayList<Bullet>();
   enemies = new ArrayList<Enemy>();
 
-  //spawn the first enemy
+  // spawn the first enemy
   spawnEnemy();
 
-  //reset gameOver state
+  // reset gameOver state
   gameOver = false;
 }
 
-
 void draw() {
-  //refresh the screen at the start of draw
+  // refresh the screen at the start of draw
   background(0);
 
   if (gameOver) {
-    //display game over screen
+    // display game over screen
     fill(255, 0, 0);
     textSize(50);
     textAlign(CENTER, CENTER);
-    text("Game Over", width / 2, height / 2);
+    text("Game Over", width / 2, height / 2 - 60);
+    textSize(20);
+    text("Score: " + score, width / 2, height / 2);
+    text("High Score: " + highScore, width / 2, height / 2 + 30);
+    text("Press 'R' to Restart", width / 2, height / 2 + 60);
     return; // exit the draw function
   }
 
-  //display + update health bar
+  // display + update health bar
   healthBar.display();
 
-  //display + update the player
+  // display + update the player
   player.update();
   player.display();
 
-  //update + display bullets
+  // update + display bullets
   for (int i = bullets.size() - 1; i >= 0; i--) {
     Bullet b = bullets.get(i);
     b.update();
     b.display();
 
-    //check for enemy + bullet collision
+    // check for enemy + bullet collision
     for (int j = enemies.size() - 1; j >= 0; j--) {
       Enemy e = enemies.get(j);
-      //if bullet hits the enemy (remove the bullet)
+      // if bullet hits the enemy (remove the bullet)
       if (e.checkHit(b)) {
         bullets.remove(i);
-        //if the enemy is dead (remove the enemy from the screen + add score)
+        // if the enemy is dead (remove the enemy from the screen + add score)
         if (!e.isAlive()) {
           enemies.remove(j);
           score += 10;
         }
-        //break the inner loop when hit is detected
+        // break the inner loop when hit is detected
         break;
       }
     }
 
-    //remove bullets when they go offscreen
+    // remove bullets when they go offscreen
     if (b.isOffScreen()) {
       bullets.remove(i);
     }
   }
 
-  //update and display the enemies
+  // update and display the enemies
   for (int i = enemies.size() - 1; i >= 0; i--) {
     Enemy e = enemies.get(i);
-    //update the enemies target/where its heading
+    // update the enemies target/where its heading
     e.updatePlayerPos(player.x, player.y);
-    //move enemy towards the player
+    // move enemy towards the player
     e.move();
     e.display();
 
@@ -91,16 +94,19 @@ void draw() {
       healthBar.decreaseHealth(10);
       if (healthBar.health == 0) {
         gameOver = true;
+        if (score > highScore) {
+          highScore = score;
+        }
       }
     }
   }
 
-  //spawn enemies offscreen every 2 seconds
+  // spawn enemies offscreen every 2 seconds
   if (frameCount % 120 == 0) {
     spawnEnemy();
   }
 
-  //draw score
+  // draw score
   fill(255);
   textSize(20);
   textAlign(CENTER, CENTER);
@@ -108,35 +114,61 @@ void draw() {
 
   rectMode(CORNERS);
 
-  //draw the UI parts
-  //draw the bullet reload bar
+  // draw the UI parts
+  // draw the bullet reload bar
   fill(255);
   rect(180, 20, 380, 40);
 
-  //draw the reload bar
+  // draw the reload bar
   rect(20, 370, 380, 390);
 }
 
+// initialize game elements
+void initializeGame() {
+  // initialize the player and the healthbar
+  healthBar = new HealthBar(20, 20, 140, 20, 100);
+  // player in the center, reload time one second
+  player = new Player(width / 2, height / 2, 30, 1000);
 
-//function spawning enemies off screen
+  // initialize the array for both bullets and enemies
+  bullets = new ArrayList<Bullet>();
+  enemies = new ArrayList<Enemy>();
+
+  // spawn the first enemy
+  spawnEnemy();
+
+  // reset gameOver state
+  gameOver = false;
+
+  // reset score
+  score = 0;
+}
+
+// function spawning enemies off screen
 void spawnEnemy() {
   enemies.add(new Enemy());
 }
 
 void keyPressed() {
-  //temporary to check healthbar
+  if (gameOver && (key == 'r' || key == 'R')) {
+    initializeGame();
+    return;
+  }
+
+  // temporary to check healthbar
   if (key == 'd' || key == 'D') {
     healthBar.decreaseHealth(10);
   }
-  if (key == 'r' || key == 'R') {
+  if (key == 'r' || key == 'R' && !gameOver) {  // Ensure this doesn't interfere with the gameOver check
     healthBar.resetHealth();
   }
 
-  //to shoot the enemies
+  // to shoot the enemies
   if (key == ' ') {
     player.shoot();
   }
 }
+
 void mousePressed() {
   player.shoot();
 }

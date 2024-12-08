@@ -78,19 +78,11 @@ class Enemy {
   boolean isAlive() {
     return health > 0;
   }
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> health_bar
 
   // check collision with the player
   boolean collidesWith(Player p) {
     float distance = dist(position.x, position.y, p.x, p.y);
     return distance < (size / 2 + p.size / 2);
   }
-<<<<<<< HEAD
-=======
->>>>>>> enemies
-=======
->>>>>>> health_bar
+
 }
