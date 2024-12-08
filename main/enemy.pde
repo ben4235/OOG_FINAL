@@ -3,12 +3,12 @@ class Enemy {
   PVector position;
   // direction and speed of movement
   PVector velocity;
-  // enemy size
-  float size = 30;
-  // enemy health
-  int health = 10;
-  // enemy movement speed
-  float speed = 1;
+  // enemy size (reduced for balance)
+  float size = 20;
+  // enemy health (reduced for balance)
+  int health = 5;
+  // enemy movement speed (adjusted for balance)
+  float speed = 0.75;
   // position of player
   PVector playerPos;
 
@@ -57,7 +57,6 @@ class Enemy {
     direction.normalize();
     // scale the direction by speed
     direction.mult(speed);
-
     // update the enemy position by adding the velocity
     position.add(direction);
   }
@@ -67,7 +66,7 @@ class Enemy {
     float distance = dist(position.x, position.y, b.x, b.y);
     if (distance < size / 2 + b.size / 2) {
       // decrease the health if hit
-      health -= 5;
+      health -= b.damage;
       // bullet hit the enemy
       return true;
     }
@@ -84,5 +83,4 @@ class Enemy {
     float distance = dist(position.x, position.y, p.x, p.y);
     return distance < (size / 2 + p.size / 2);
   }
-
 }
