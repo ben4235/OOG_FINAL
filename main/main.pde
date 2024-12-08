@@ -1,10 +1,10 @@
-void setup(){
-size(400,400);
-background(0);
+Player player;
 
+void setup() {
+  size(400, 400);
+  background(0);
+  player = new Player(width / 2, height / 2, 30, 1000);
 }
-void draw(){
-  ellipseMode(RADIUS);
-  ellipse(200,200,20,20);
-  
+void draw() {
+  player.display();
 }
