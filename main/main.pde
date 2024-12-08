@@ -7,4 +7,5 @@ void setup() {
 }
 void draw() {
   player.display();
+  bullets = new ArrayList<Bullet>();
 }
