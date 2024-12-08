@@ -1,4 +1,5 @@
 ArrayList<Bullet> bullets;
+ArrayList<Enemy> enemies;
 Player player;
 
 void setup() {
@@ -9,6 +10,10 @@ void setup() {
 
   //initialize the array for both bullets and enemies
   bullets = new ArrayList<Bullet>();
+    enemies = new ArrayList<Enemy>();
+
+  //spawn the first enemy
+  spawnEnemy();
 
 }
 void draw() {
