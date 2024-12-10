@@ -1,49 +1,41 @@
 class HealthBar {
-  //position and size
-  float x, y, barWidth, barHeight; 
-  //current + maxhealth
-  int health, maxHealth;
+  int x, y, width, height, maxHealth;
+  int currentHealth;
 
-  //healthbar constructor
-  HealthBar(float x, float y, float barWidth, float barHeight, int maxHealth) {
+  // Constructor with parameters
+  HealthBar(int x, int y, int width, int height, int maxHealth) {
     this.x = x;
     this.y = y;
-    this.barWidth = barWidth;
-    this.barHeight = barHeight;
+    this.width = width;
+    this.height = height;
     this.maxHealth = maxHealth;
-    //initialize health to max
-    this.health = maxHealth;
+    this.currentHealth = maxHealth;  // Start with full health
   }
 
-  //display healthbar
+  // Method to display the health bar
   void display() {
-    //draw the background of the health bar
-    fill(200);
-    rect(x, y, x + barWidth, y + barHeight);
+    // Draw the background of the health bar
+    fill(150);
+    rect(x, y, width, height);
 
-    //calculate width of the health bar
-    float healthWidth = map(health, 0, maxHealth, 0, barWidth);
-
-    //draw the health bar
-    fill(255, 0, 0);
-    rect(x, y, x + healthWidth, y + barHeight);
-
-    //draw health text
-    fill(255);
-    textAlign(BASELINE);
-    textSize(20);
-    text("Health: " + health, x, y + barHeight + 20);
+    // Draw the health portion of the bar
+    fill(255, 0, 0); // Red color
+    float healthWidth = map(currentHealth, 0, maxHealth, 0, width);
+    rect(x, y, healthWidth, height);
   }
 
-  //decrease health
-  void decreaseHealth(int amount) {
-    health -= amount;
-    //make sure health does not go below 0, need to change later to be loss state
-    if (health < 0) health = 0;
+  // Method to update the health value
+  void setHealth(int health) {
+    this.currentHealth = health;
   }
 
-  //reset the health to the max
-  void resetHealth() {
-    health = maxHealth;
+  // Method to reduce health
+  void reduceHealth(int amount) {
+    this.currentHealth = max(0, this.currentHealth - amount);
+  }
+
+  // Method to increase health
+  void increaseHealth(int amount) {
+    this.currentHealth = min(this.maxHealth, this.currentHealth + amount);
   }
 }

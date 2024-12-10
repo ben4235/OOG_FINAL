@@ -1,20 +1,12 @@
 class Upgrade {
-  String type;
-  float amount;
+  String name;
+  String type;   // Type of upgrade (e.g., BulletDamage, ReloadSpeed, etc.)
+  float value;   // Change the type to float
 
-  Upgrade(String type, float amount) {
-    this.type = type;
-    this.amount = amount;
-  }
-
-  void apply(Player player) {
-    if (type.equals("Attack Speed")) {
-      player.reloadTime -= amount;
-      if (player.reloadTime < 100) player.reloadTime = 100; // Minimum reload time
-    } else if (type.equals("Damage")) {
-      player.bulletDamage += amount;
-    } else if (type.equals("Bullets Shot")) {
-      player.bulletsShot += amount;
-    }
+  // Constructor to initialize name and value
+  Upgrade(String name, float value) {
+    this.name = name;
+    this.value = value;   // No need for conversion now since both are float
+    this.type = name;     // You can directly set the type from the name
   }
 }

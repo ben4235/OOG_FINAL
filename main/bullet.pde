@@ -1,48 +1,58 @@
 class Bullet {
-  // bullet position
-  float x, y;
-  // velocity in x/y direction
-  float vx, vy;
-  // speed of the bullet
-  float speed = 5;
-  // bullet size
-  float size = 10;
-  // bullet damage
+  PVector position;
+  PVector velocity;
   int damage;
 
-  // bullet constructor
-  Bullet(float x, float y, float targetX, float targetY, int damage) {
-    this.x = x;
-    this.y = y;
+  // Constructor to initialize bullet with position, velocity, and damage
+  Bullet(float x, float y, int damage) {
+    this.position = new PVector(x, y);  // Initialize position
+    this.velocity = new PVector(0, 0);  // Initialize velocity
     this.damage = damage;
-
-    // calculate vector for direction
-    float dx = targetX - x;
-    float dy = targetY - y;
-    // calculate the magnitude of the vector
-    float magnitude = dist(0, 0, dx, dy);
-
-    // normalize the direction vector + multiply by speed
-    this.vx = (dx / magnitude) * speed;
-    this.vy = (dy / magnitude) * speed;
   }
 
-  // display bullet
-  void display() {
-    fill(255, 255, 0);
-    ellipse(x, y, size, size);
-  }
-
-  // update bullet position
+  // Update the bullet's position based on its velocity
   void update() {
-    // x position
-    x += vx;
-    // y position
-    y += vy;
+    position.add(velocity);  // Move the bullet
+  }
+  void setVelocity(PVector direction, float speed) {
+    velocity = direction.copy().mult(speed);  // Set velocity based on direction and speed
+  }
+  void display() {
+    fill(0, 255, 0);  // Green color for the bullet
+    ellipse(position.x, position.y, 10, 10);  // Draw bullet as a small circle
+  }
+  void updateAndDisplay() {
+    update();  // Update player (movement, health, etc.)
+    display(); // Display player
+
+    // Update and display all bullets, and remove those that go off-screen
+    for (int i = bullets.size() - 1; i >= 0; i--) {
+      Bullet b = bullets.get(i);
+      b.update();   // Update bullet position
+      b.display();  // Display the bullet
+
+      // Remove bullets that go off-screen
+      if (b.isOffScreen()) {
+        bullets.remove(i); // Remove bullet from list
+      }
+    }
   }
 
-  // check if bullet is off-screen
+  // Check if the bullet collides with an enemy
+  boolean collidesWith(Enemy enemy) {
+    float bulletRadius = 5;  // Radius of the bullet
+    float distance = dist(position.x, position.y, enemy.position.x, enemy.position.y);
+    float combinedRadius = bulletRadius + enemy.size / 2;  // Combine the radius of bullet and enemy
+    return distance < combinedRadius;  // Collision detection
+  }
+
+
+  // Check if the bullet is off the screen
   boolean isOffScreen() {
-    return x < 0 || x > width || y < 0 || y > height;
+    return position.x < 0 || position.x > width || position.y < 0 || position.y > height;
+  }
+  // Check if the bullet is off the screen (optional)
+  boolean isVisible() {
+    return position.x >= 0 && position.x <= width && position.y >= 0 && position.y <= height;
   }
 }
