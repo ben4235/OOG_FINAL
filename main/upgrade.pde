@@ -1,12 +1,23 @@
 class Upgrade {
   String name;
-  String type;   // Type of upgrade (e.g., BulletDamage, ReloadSpeed, etc.)
-  float value;   // Change the type to float
+  String description;
+  Runnable effect;
 
-  // Constructor to initialize name and value
-  Upgrade(String name, float value) {
+  Upgrade(String name, String description, Runnable effect) {
     this.name = name;
-    this.value = value;   // No need for conversion now since both are float
-    this.type = name;     // You can directly set the type from the name
+    this.description = description;
+    this.effect = effect;
+  }
+
+  void display(float x, float y) {
+    fill(255);
+    rect(x - 150, y - 20, 300, 40, 10);
+    fill(0);
+    textAlign(CENTER, CENTER);
+    text(name, x, y);
+  }
+
+  boolean isHovered(float mx, float my, float x, float y) {
+    return mx > x - 150 && mx < x + 150 && my > y - 20 && my < y + 20;
   }
 }

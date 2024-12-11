@@ -1,536 +1,446 @@
-// variables (too many variables)
-HealthBar healthBar;
+Player player;
 ArrayList<Bullet> bullets;
 ArrayList<Enemy> enemies;
-ArrayList<Upgrade> upgrades;
-boolean upgradePrompt = false;
-int highScore = 0;
-boolean gameOver = false;
-boolean firstUpgradeGiven = false;
-int upgradeThreshold = 100; // Smaller increment for upgrades
-int nextUpgradeScore = upgradeThreshold;
-boolean paused = false;
-boolean upgradeCooldown = false;
-int lastUpgradeScore = 0;
-int gracePeriodStartTime = 0;
-boolean inGracePeriod = false;
-int bulletDamage = 1;
-int score = 0; // The player's score
-int damageUpgradeThreshold = 500; // Score threshold for damage upgrade
-int reloadSpeedUpgradeThreshold = 1000; // Score threshold for reload speed upgrade
-int spreadUpgradeThreshold = 1500; // Score threshold for bullet spread upgrade
+
+int playerScore = 0;
+boolean upgradeMenu = false;
+Upgrade[] upgrades = new Upgrade[3];
+
+int lastUpgradeScore = 0;  // Track the last score at which upgrades were given
+int upgradeThreshold = 200; // Initial score required for the first upgrade
+int upgradeIncrement = 25; // Increase in score requirement for subsequent upgrades
+
+// Player Health Bar Constants
+int playerMaxHealth = 100;
+int playerHealth = 100;
 
 
+boolean upgradeTriggered = false;
 
-boolean damageUpgraded = false; // To track if the upgrade has already been given
-boolean reloadSpeedUpgraded = false;
-boolean spreadUpgraded = false;
-//variables for the stars
-int numStars = 200;
-float[] starX = new float[numStars];
-float[] starY = new float[numStars];
-float[] starBrightness = new float[numStars];
+float spawnInterval = 120; // Starting interval for enemy spawn (in frames)
+float minSpawnInterval = 20; // Minimum interval for spawning
+float spawnDecayRate = 0.1; // Rate at which the interval decreases
+float decayRate = 0.1; // Controls how fast the interval decreases
 
-//variables for the galaxy
-int numGalaxy = 20;
-float[] galaxyX = new float[numGalaxy];
-float[] galaxyy = new float[numGalaxy];
-float[] galaxyBaseSize = new float[numGalaxy];
-color[] galaxyColor = new color[numGalaxy];
+// Track when enemy health was last updated
+int lastIncreaseTime = 0; // Time in seconds
+int baseHealth = 10;           // Starting health for enemies
+int healthIncrementRate = 10;   // Health increase per interval
+int updateInterval = 15; // Time interval (in seconds) for increasing health
+int damIncrementRate = 1;   // Health increase per interval
+float spdIncrementRate = 0.1;   // Speed increase per interval
+int damage = 5; // Base damage for enemies
+float speed = 1; // Base speed for enemies
 
-//variables for the shooting stars
-int numShootingStars = 5;
-float[] shootingStarX = new float[numShootingStars];
-float[] shootingStarY = new float[numShootingStars];
-float[] shootingStarSpeedX = new float[numShootingStars];
-float[] shootingStarSpeedY = new float[numShootingStars];
-boolean[] shootingStarActive = new boolean[numShootingStars];
+boolean gameOver = false;  // Track whether the game is over
+int highScore = 0;         // Track the permanent high score
+int sessionHighScore = 0;  // Track the session high score
 
-//variables for the enemy spawning
-float spawnInterval = 2000;
-int lastSpawnTime = 0;
+// File name to store the high score
+String highScoreFile = "highscore.txt";
 
-Upgrade currentUpgrade1 = new Upgrade("Damage Boost", 1);  // Increase damage by 1
-Upgrade currentUpgrade2 = new Upgrade("Attack Speed", 200);  // Reduce reload time by 200ms
-Upgrade currentUpgrade3 = new Upgrade("Bullet Count", 1);  // Increase bullet count by 1
+// Define initial values
+float initialSpawnInterval = 300;  // Initial spawn interval (in frames or seconds)
+float initialSpawnDecayRate = 0.05; // Initial spawn decay rate (how much the spawn interval decreases over time)
+int initialBulletDamage = 10;      // Default bullet damage
+float initialAttackSpeed = 1.0;    // Default attack speed
+int initialPlayerHealth = 100;     // Default player health
+int initialScore = 0;              // Default score (could be 0 or any other starting value)
 
-ArrayList<Upgrade> availableUpgrades = new ArrayList<>();
 
 void setup() {
-  size(1250, 750);
+  size(1280, 720);
+  player = new Player();
+  bullets = new ArrayList<>();
+  enemies = new ArrayList<>();
+  // Check if the highscore file exists, otherwise create it
+  File highScoreFileObj = new File(dataPath(highScoreFile));
 
-  // Define the square size, gap, and startX for positioning
-  float squareSize = 100;
-  float gap = 20;
-  float totalWidth = 3 * squareSize + 2 * gap;
-  float startX = (width - totalWidth) / 2;  // Position the first upgrade box
-  float squareY = height / 2 - squareSize / 2; // Define squareY here
 
-  availableUpgrades.add(new Upgrade("BulletDamage", 10));
-  availableUpgrades.add(new Upgrade("ReloadSpeed", 100));
-  availableUpgrades.add(new Upgrade("BulletSpread", 1));
-  // Loop through upgrades to display or use them
-  for (int i = 0; i < availableUpgrades.size(); i++) {
-    Upgrade upgrade = availableUpgrades.get(i);
-    println("Upgrade: " + upgrade.type + ", Value: " + upgrade.value);
+  // If the file doesn't exist, create it with initial score 0
+  if (!highScoreFileObj.exists()) {
+    println("High score file not found. Creating a new one.");
+    String[] initialScore = {str(highScore)};
+    saveStrings(highScoreFile, initialScore);
   }
-
-  // Initialize the stars
-  for (int i = 0; i < numStars; i++) {
-    starX[i] = random(width);
-    starY[i] = random(height);
-    starBrightness[i] = random(150, 255);
-  }
-
-  // Initialize the galaxy
-  for (int i = 0; i < numGalaxy; i++) {
-    galaxyX[i] = random(width);
-    galaxyy[i] = random(height);
-    galaxyBaseSize[i] = random(50, 300);
-    galaxyColor[i] = color(random(50, 255), random(50, 255), random(50, 255), 10);
-  }
-
-  // Initialize the shooting stars
-  for (int i = 0; i < numShootingStars; i++) {
-    resetShootingStar(i);
-  }
-
-  upgrades = new ArrayList<Upgrade>();
-  initializeUpgrades();
-
-  // Initialize the player and the healthbar
-  healthBar = new HealthBar(10, 10, 1230, 40, 1000);
-  player = new Player(width / 2, height / 2, 30, 1000);
-  player.setHealthBar(healthBar);  // Link health bar to player
-  Upgrade[] upgradesArray = availableUpgrades.toArray(new Upgrade[0]);
-
-
-  // Initialize the array for both the bullets and for the enemies
-  bullets = new ArrayList<Bullet>();
-  enemies = new ArrayList<Enemy>();
-
-  // Reset the gameOver state
-  gameOver = false;
-
-  // Initialize the array inside the setup() method or any method
-  Upgrade[] availableUpgrades = {
-    new Upgrade("Damage Boost", 1),
-    new Upgrade("Attack Speed", 200),
-    new Upgrade("Bullet Count", 1)
-  };
-
-  // Draw upgrade options
-  for (int i = 0; i < availableUpgrades.length; i++) {
-    fill(200);
-    rect(startX + i * (squareSize + gap), squareY, squareSize, squareSize);
-    fill(0);
-    textSize(20);
-    textAlign(CENTER, CENTER);
-    text(availableUpgrades[i].name, startX + i * (squareSize + gap) + squareSize / 2, squareY + squareSize / 2);
-  }
-  // Iterate through the array
-  for (int i = 0; i < upgradesArray.length; i++) {
-    Upgrade upgrade = upgradesArray[i];
-    println("Upgrade: " + upgrade.type + ", Value: " + upgrade.value);
-  }
-  // Give the player the initial upgrade prompt
-  promptUpgrade();
-  initializeUpgrades();
-  println("Setup completed");
+  // Load the high score from the file when the game starts
+  loadHighScore();
 }
-
-
-
-void resetShootingStar(int index) {
-  shootingStarX[index] = random(width);
-  shootingStarY[index] = random(height / 2);
-  shootingStarSpeedX[index] = random(5, 10);
-  shootingStarSpeedY[index] = random(2, 5);
-  shootingStarActive[index] = false;
-}
-
-
-void initializeGame() {
-  //initialize the player and the players healthbar
-  healthBar = new HealthBar(10, 10, 1230, 40, 1000);
-  player = new Player(width / 2, height / 2, 30, 1000);
-  //link health bar to player
-  player.setHealthBar(healthBar);
-  //initialize the array for both the bullets and for the enemies
-  bullets = new ArrayList<Bullet>();
-  enemies = new ArrayList<Enemy>();
-  //reset the gameOver state
-  gameOver = false;
-  firstUpgradeGiven = false;
-  //reset the score
-  score = 0;
-  //give the player the initial upgrade prompt
-  promptUpgrade();
-}
-
-
-Player player = new Player(100, 100, 50, 100);
-
 
 void draw() {
+  background(30);
 
-  // Display and update the health bar
-  healthBar.display();
-  // Draw the galaxy background
-  drawGalaxyBackground();
-  // Display and update the player
-  player.update();
-  player.display();
-  player.displayReloadBar();  // Inside the Player class, it uses player.x and player.y
-  checkCollisions();
+  if (playerHealth > 0) {
+    // Game is still active
+    // Draw the health bar
+    if (upgradeMenu) {
+      displayUpgradeMenu(); // Display the upgrade menu
+    } else {
 
-  if (paused) {
-    if (upgradePrompt) {
-      displayUpgradePrompt();  // Show upgrade choices
+      drawHealthBar();
+      player.display();
+
+      updateEnemies();
+      updateBullets();
+      checkCollisions();
+
+      // Display score
+      fill(255);
+      textSize(32);
+      textAlign(CENTER, CENTER);  // Center the text both horizontally and vertically
+      text("Score: " + playerScore, width/2, 40 + 20);
+
+      if (playerScore >= upgradeThreshold && !upgradeMenu) {
+        upgradeMenu = true;
+        presentUpgrade();
+
+        upgradeIncrement = upgradeIncrement + upgradeIncrement + 100;
+        // Increase the threshold for the next upgrade
+        upgradeThreshold += upgradeIncrement;
+        println(upgradeThreshold);
+      }
     }
-    return;
-  }
-
-  // Score tracking and upgrade logic
-  if (score >= nextUpgradeScore && !upgradePrompt && !upgradeCooldown) {
-    promptUpgrade();
-    upgradeThreshold = 100;  // Set a smaller increment for the next upgrade
-    nextUpgradeScore = score + upgradeThreshold;
-  }
-
-  if (score >= reloadSpeedUpgradeThreshold && !reloadSpeedUpgraded) {
-    upgradeBulletReloadSpeed();
-    reloadSpeedUpgraded = true;
-  }
-
-  if (score >= spreadUpgradeThreshold && !spreadUpgraded) {
-    upgradeBulletSpread();
-    spreadUpgraded = true;
-  }
-
-
-
-  if (gameOver) {
+  } else {
+    // Game over screen
     displayGameOverScreen();
-    return;  // Exit the draw function if the game is over
   }
+}
+
+void displayGameOverScreen() {
+  background(0, 50, 100);
+  textAlign(CENTER, CENTER);
+  textSize(48);
+  fill(255);
+  text("GAME OVER", width / 2, height / 3);
+
+  textSize(24);
+  text("Your Score: " + playerScore, width / 2, height / 2);
+  text("High Score: " + highScore, width / 2, height / 2 + 40);
+
+  textSize(16);
+  text("Press 'R' to Restart", width / 2, height / 2 + 80);
+}
+
+
+void loadHighScore() {
+  // Try to load the high score from the file
+  String[] scoreData = loadStrings(highScoreFile);
+
+  if (scoreData != null && scoreData.length > 0) {
+    try {
+      highScore = Integer.parseInt(scoreData[0]);
+      println("Loaded high score: " + highScore);
+    }
+    catch (NumberFormatException e) {
+      println("Error loading high score.");
+    }
+  } else {
+    println("Error: High score file is empty or not formatted correctly.");
+  }
+}
+
+void saveHighScore() {
+  // Convert the high score to a string array and save it to the file
+  String[] scoreData = {str(highScore)};
+
+  // Print to console to check what is being saved
+  println("Saving high score: " + highScore);
+
+  // Save the score to the file
+  saveStrings(highScoreFile, scoreData);
+
+  // Verify that the high score is saved
+  println("High score saved to file: " + highScore);
+}
+
+
+void endGame() {
+  // After the game ends, check if the score is higher than the saved high score
+  if (playerScore > highScore) {
+    highScore = playerScore;  // Update the high score
+    saveHighScore();  // Save the new high score
+    println("New high score: " + highScore);
+  }
+
+  // Display the game over screen with the high score
+  displayGameOverScreen();
+}
+
+void drawHealthBar() {
+  fill(255, 0, 0);
+  float healthBarWidth = map(playerHealth, 0, playerMaxHealth, 0, width * 0.8);
+  rect(width * 0.1, 10, healthBarWidth, 20);
+  noFill();
+  stroke(255);
+  rect(width * 0.1, 10, width * 0.8, 20);
+}
+
+void updateBullets() {
   for (int i = bullets.size() - 1; i >= 0; i--) {
     Bullet b = bullets.get(i);
     b.update();
     b.display();
-  }
 
-
-    player.updateAndDisplay();  // Update player and display bullets
-    // Update and display enemies (if you have enemies)
-    for (Enemy enemy : enemies) {
-      enemy.update(player);  // Update enemy movement
-      enemy.display();       // Display enemy
-    }
-
-    // Update and display bullets and enemies
-    player.updateAndDisplay();  // This calls the method from the player class to handle bullets
-
-    updateAndDisplayEnemies();
-
-    // Spawn enemies off-screen
-    if (millis() - lastSpawnTime > spawnInterval) {
-      spawnEnemy();
-      lastSpawnTime = millis();
-      spawnInterval = max(500, 2000 - score * 5);
-    }
-
-    // Check if it's time for an upgrade
-    if (score >= nextUpgradeScore && !upgradePrompt && !upgradeCooldown) {
-      promptUpgrade();
-    }
-    upgradeThreshold += 10;
-    nextUpgradeScore = score + upgradeThreshold;
-  
-
-
-  Upgrade[] availableUpgrades = {
-    new Upgrade("Damage Boost", 1),
-    new Upgrade("Attack Speed", 200),
-    new Upgrade("Bullet Count", 1),
-    new Upgrade("Reload Speed", 0.8f),
-    new Upgrade("Bullet Spread", 1)
-  };
-}
-void displayHealthBar() {
-    // Background of the health bar
-    noStroke();
-    fill(50);
-    rect(10, 10, 200, 20); // Static background width
-
-    // Foreground representing health
-    fill(255, 0, 0);
-    rect(10, 10, player.health * 2, 20); // Health bar width based on health
-
-    // Outline for clarity
-    noFill();
-    stroke(255);
-    rect(10, 10, 200, 20); // Full bar outline
-}
-
-void promptUpgrade() {
-  // Pause the game
-  paused = true;
-  upgradePrompt = true;
-
-  // Randomly shuffle or pick 3 upgrades
-  Upgrade[] chosenUpgrades = new Upgrade[3];
-  for (int i = 0; i < 3; i++) {
-    chosenUpgrades[i] = availableUpgrades.get((int) random(availableUpgrades.size()));
-  }
-
-  currentUpgrade1 = chosenUpgrades[0];
-  currentUpgrade2 = chosenUpgrades[1];
-  currentUpgrade3 = chosenUpgrades[2];
-}
-void upgradeBulletDamage() {
-  bulletDamage += 2; // Increase bullet damage
-  println("Bullet damage upgraded!");
-}
-
-void upgradeBulletReloadSpeed() {
-  player.setReloadSpeed(player.reloadSpeed * 0.8); // Decrease reload time (faster reload)
-  println("Bullet reload speed upgraded!");
-}
-
-void upgradeBulletSpread() {
-  player.setBulletSpread(player.bulletSpread + 1);  // Increase number of bullets shot
-  println("Bullet spread upgraded!");
-}
-
-
-void drawGalaxyBackground() {
-  //clear the screen
-  background(0);
-  //draw galaxy with dynamic sizes
-  for (int i = 0; i < numGalaxy; i++) {
-    float dynamicSize = galaxyBaseSize[i] + sin(frameCount * 0.02 + i) * 20;
-    fill(galaxyColor[i]);
-    noStroke();
-    ellipse(galaxyX[i], galaxyy[i], dynamicSize, dynamicSize);
-  }
-  //draw stars
-  for (int i = 0; i < numStars; i++) {
-    fill(255, 255, 255, starBrightness[i]);
-    noStroke();
-    ellipse(starX[i], starY[i], 2, 2);
-  }
-  //draw shooting stars
-  for (int i = 0; i < numShootingStars; i++) {
-    if (shootingStarActive[i]) {
-      fill(255);
-      stroke(255);
-      line(shootingStarX[i], shootingStarY[i], shootingStarX[i] - shootingStarSpeedX[i] * 5, shootingStarY[i] - shootingStarSpeedY[i] * 5);
-      shootingStarX[i] += shootingStarSpeedX[i];
-      shootingStarY[i] += shootingStarSpeedY[i];
-      //reset shooting star if it goes off screen
-      if (shootingStarX[i] > width || shootingStarY[i] > height) {
-        resetShootingStar(i);
-        shootingStarActive[i] = random(1000) > 980;
-      }
-    } else if (random(10000) > 9995) {
-      shootingStarActive[i] = true;
-    }
-  }
-}
-
-void drawBackground() {
-  background(0);
-  //draw animated circles
-  for (int i = 0; i < 50; i++) {
-    float x = noise(frameCount * 0.01 + i) * width;
-    float y = noise(frameCount * 0.01 + i + 100) * height;
-    float size = noise(frameCount * 0.01 + i + 200) * 50;
-    fill(255, 100, 100, 100);
-    noStroke();
-    ellipse(x, y, size, size);
-  }
-}
-void checkCollisions() {
-  for (int i = bullets.size() - 1; i >= 0; i--) {
-    Bullet b = bullets.get(i);
-    for (int j = enemies.size() - 1; j >= 0; j--) {
-      Enemy enemy = enemies.get(j);
-      if (b.collidesWith(enemy)) {
-        enemy.takeDamage(b.damage);
-        bullets.remove(i); // Remove bullet
-        if (enemy.health <= 0) {
-          enemies.remove(j); // Remove enemy if health is 0 or less
-        }
-        break; // Break inner loop if collision detected
-      }
-    }
-  }
-}
-void mousePressed() {
-  if (upgradePrompt) {
-    // Check if the player clicks on an upgrade option
-    float squareSize = 100;
-    float gap = 20;
-    float startX = (width - 3 * squareSize - 2 * gap) / 2;
-    float squareY = height / 2 - squareSize / 2;
-
-    if (mouseX > startX && mouseX < startX + squareSize && mouseY > squareY && mouseY < squareY + squareSize) {
-      player.applyUpgrade(currentUpgrade1);  // Apply the first upgrade
-    } else if (mouseX > startX + squareSize + gap && mouseX < startX + 2 * squareSize + gap && mouseY > squareY && mouseY < squareY + squareSize) {
-      player.applyUpgrade(currentUpgrade2);  // Apply the second upgrade
-    } else if (mouseX > startX + 2 * (squareSize + gap) && mouseX < startX + 3 * squareSize + 2 * gap && mouseY > squareY && mouseY < squareY + squareSize) {
-      player.applyUpgrade(currentUpgrade3);  // Apply the third upgrade
-    }
-
-    // Resume the game after an upgrade is chosen
-    upgradePrompt = false;
-    paused = false;
-  } else {
-    player.shoot();  // Corrected to call shoot on the player object
-  }
-}
-
-
-
-//player upgrade values
-void initializeUpgrades() {
-  upgrades = new ArrayList<Upgrade>();
-  upgrades.add(new Upgrade("Damage\n Boost", 1));
-  upgrades.add(new Upgrade("Attack\n Speed", 200));
-  upgrades.add(new Upgrade("Bullet\n Count", 1));
-}
-
-
-
-
-void displayUpgradePrompt() {
-  background(0);
-  fill(255);
-  textSize(30);
-  textAlign(CENTER, CENTER);
-  text("Choose an Upgrade", width / 2, height / 2 - 150);
-
-  // Define the variables here
-  float squareSize = 100;
-  float gap = 20;
-  float totalWidth = 3 * squareSize + 2 * gap;
-  float startX = (width - totalWidth) / 2;
-  float squareY = height / 2 - squareSize / 2;
-
-  for (int i = 0; i < availableUpgrades.size(); i++) {
-    Upgrade upgrade = availableUpgrades.get(i);
-    println("Upgrade: " + upgrade.type + ", Value: " + upgrade.value);
-  }
-}
-
-
-
-void displayGameOverScreen() {
-  fill(255, 0, 0);
-  textSize(50);
-  textAlign(CENTER, CENTER);
-  text("Game Over", width / 2, height / 2 - 60);
-  textSize(20);
-  text("Score: " + score, width / 2, height / 2);
-  text("High Score: " + highScore, width / 2, height / 2 + 30);
-  text("Press 'R' to Restart", width / 2, height / 2 + 60);
-}
-
-void updateAndDisplay() {
-
-  // Update and display all bullets
-  for (int i = bullets.size() - 1; i >= 0; i--) {
-    Bullet b = bullets.get(i);
-    b.update();  // Update bullet position
-    b.display();  // Display bullet on the screen
-
-    // Check for collisions with enemies
-    for (Enemy enemy : enemies) {
-      if (enemy.checkHit(b, bullets)) {  // Pass bullets list to checkHit()
-        System.out.println("Enemy hit!");
-        if (!enemy.isAlive()) {
-          enemies.remove(enemy);
-          System.out.println("Enemy destroyed!");
-          score += 10;
-        }
-        break; // Exit loop once the bullet has hit an enemy
-      }
-    }
-
-    // Remove bullets that go off-screen
-    if (!b.isVisible()) {
+    // Remove bullets that are out of bounds or have hit an enemy
+    if (b.position.x < 0 || b.position.x > width || b.position.y < 0 || b.position.y > height) {
       bullets.remove(i);
     }
   }
 }
 
 
+void updateEnemies() {
+  // Gradually decrease spawn interval based on time elapsed
+  float elapsedSeconds = frameCount / 60.0; // Time since start in seconds
+  // Ensure the spawn interval doesn't decrease too quickly
+  spawnInterval = max(minSpawnInterval, 300 / (1 + spawnDecayRate * elapsedSeconds));
 
+  // Check if it's time to increase the health of newly spawned enemies
+  if (elapsedSeconds - lastIncreaseTime >= updateInterval) {
+    baseHealth += healthIncrementRate;
+    damage += damIncrementRate;
+    speed += spdIncrementRate;
+    lastIncreaseTime = (int) elapsedSeconds;
+    println("Increased base health for new enemies to: " + baseHealth);
+  }
 
-void updateAndDisplayEnemies() {
-  // Update and display regular enemies
+  // Spawn enemies based on the current interval
+  if (frameCount % (int)spawnInterval == 0) {
+    float x, y;
+
+    // Randomly decide which edge to spawn the enemy from
+    int spawnSide = (int) random(4); // 0: top, 1: bottom, 2: left, 3: right
+
+    switch (spawnSide) {
+    case 0: // Spawn from the top
+      x = random(0, width);
+      y = -20;
+      break;
+    case 1: // Spawn from the bottom
+      x = random(0, width);
+      y = height + 20;
+      break;
+    case 2: // Spawn from the left
+      x = -20;
+      y = random(0, height);
+      break;
+    case 3: // Spawn from the right
+      x = width + 20;
+      y = random(0, height);
+      break;
+    default:
+      x = random(0, width);
+      y = random(0, height);
+    }
+
+    // Create a new enemy with dynamically updated health
+    Enemy newEnemy = new Enemy(x, y, damage, speed, baseHealth);
+    enemies.add(newEnemy);
+
+    // Debugging: Print the enemy's stats
+    println("Enemy spawned: Health = " + newEnemy.health + ", Damage = " + newEnemy.damage + ", Speed = " + newEnemy.speed);
+  }
+
+  // Update all enemies
   for (int i = enemies.size() - 1; i >= 0; i--) {
     Enemy e = enemies.get(i);
-    e.update(player);
+    e.update();
     e.display();
 
-    // Check if the enemy collides with the player
-    if (e.checkCollisionWithPlayer(player)) {
-      player.decreaseHealth(10);  // Decrease player's health by 10
-      healthBar.setHealth(player.health);  // Update the health bar
-      enemies.remove(i); // Remove enemy upon collision
-    }
-
-    // Check if the enemy is dead
-    if (!e.isAlive()) {
+    if (dist(e.position.x, e.position.y, player.position.x, player.position.y) < e.radius + player.radius) {
+      playerHealth -= e.damage; // Deduct player's health based on enemy's damage
       enemies.remove(i);
-      score += 10;
+      // Game over condition
+      if (playerHealth <= 0) {
+        gameOver = true;  // Set the game-over flag
+        println("Game Over!");
+      }
     }
   }
 }
 
 
-void drawStarfieldBackground() {
-  background(0);  // Clear the screen
-  // Draw stars
-  for (int i = 0; i < numStars; i++) {
-    fill(255);
-    noStroke();
-    ellipse(starX[i], starY[i], 2, 2);
+
+
+void checkCollisions() {
+  // Temporary lists to handle removals
+  ArrayList<Enemy> enemiesToRemove = new ArrayList<>();
+  ArrayList<Bullet> bulletsToRemove = new ArrayList<>();
+
+  // Check collisions between player and enemies
+  for (Enemy e : enemies) {
+    float distToPlayer = dist(player.position.x, player.position.y, e.position.x, e.position.y);
+    if (distToPlayer < player.radius + e.radius) {
+      playerHealth -= 10; // Deduct health if player collides with enemy
+    }
+
+    // Check collisions between bullets and enemies
+    for (Bullet b : bullets) {
+      float distToBullet = dist(b.position.x, b.position.y, e.position.x, e.position.y);
+
+
+      if (distToBullet < b.radius + e.radius) {
+        println("damage to enemy");
+        e.health -= player.bulletDamage; // Apply bullet damage
+        bulletsToRemove.add(b); // Mark bullet for removal
+        println("Enemy health after damage: " + e.health);
+
+        if (e.health <= 0) {
+          println("Enemy removed. Player score: " + playerScore);
+          enemiesToRemove.add(e); // Mark enemy for removal
+          playerScore += 100; // Increase player score
+          break; // Exit bullet loop once collision is handled
+        }
+      }
+    }
+  }
+
+  // Remove marked bullets and enemies after iteration
+  bullets.removeAll(bulletsToRemove);
+  enemies.removeAll(enemiesToRemove);
+  // Check if the player's health is zero
+  if (playerHealth <= 0) {
+    gameOver = true;  // Set the game-over flag
+    println("Game Over!");
+    endGame();  // Call endGame to save the high score
   }
 }
 
-void spawnEnemy() {
-  float spawnBuffer = 50;  // Buffer to spawn enemies off-screen
-  float x, y;
-  int edge = floor(random(4));
-  // Choose a random edge to spawn the enemy
-  switch (edge) {
-  case 0: // Top
-    x = random(width);
-    y = -spawnBuffer;
-    break;
-  case 1: // Right
-    x = width + spawnBuffer;
-    y = random(height);
-    break;
-  case 2: // Bottom
-    x = random(width);
-    y = height + spawnBuffer;
-    break;
-  case 3: // Left
-    x = -spawnBuffer;
-    y = random(height);
-    break;
-  default:
-    x = random(width);
-    y = random(height);
-  }
 
-  // Gradually increase enemy speed and health based on the score
-  float enemySpeed = 1 + score / 1000.0;
-  int enemyHealth = 5 + score / 50;
-  // Spawn a single enemy type
-  enemies.add(new Enemy(x, y, enemySpeed, enemyHealth));
+void presentUpgrade() {
+  upgrades[0] = new Upgrade(
+    "Increase Damage",
+    "Increases bullet damage by 5",
+    () -> player.bulletDamage += 5
+    );
+  upgrades[1] = new Upgrade(
+    "Faster Shooting",
+    "Decreases attack cooldown by 50ms",
+    () -> player.bulletCooldown = max(100, player.bulletCooldown - 50)
+    );
+  upgrades[2] = new Upgrade(
+    "Spread Shot",
+    "Adds 1 extra bullet per shot",
+    () -> player.bulletSpread += 1
+    );
+
+  println("Upgrade options prepared: " + upgrades[0].name + ", " + upgrades[1].name + ", " + upgrades[2].name);
+}
+
+
+void displayUpgradeMenu() {
+  background(0, 50, 100);
+  textAlign(CENTER);
+  textSize(24);
+  fill(255);
+  text("Choose an Upgrade", width / 2, height / 4);
+
+  // Loop through each upgrade to display its button
+  for (int i = 0; i < upgrades.length; i++) {
+    float x = width / 2;
+    float y = height / 2 + i * 60;
+
+    // Combine name and description to calculate full text width
+    String fullText = upgrades[i].name + ": " + upgrades[i].description;
+    float fullTextWidth = textWidth(fullText);
+
+    // Add padding around the text
+    float buttonWidth = fullTextWidth + 40; // Padding for better spacing (20px on each side)
+    float buttonHeight = 40;  // Fixed button height
+
+    // Draw the button (rectangular background)
+    fill(50, 50, 150);
+    rect(x - buttonWidth / 2, y - buttonHeight / 2, buttonWidth, buttonHeight);
+
+    // Center the text both horizontally and vertically
+    fill(255);
+    textAlign(CENTER, CENTER);  // Center both horizontally and vertically
+    text(fullText, x, y); // Display the full text (name + description)
+  }
+}
+
+void mousePressed() {
+  if (upgradeMenu) {
+    for (int i = 0; i < upgrades.length; i++) {
+      float x = width / 2;
+      float y = height / 2 + i * 60;
+      if (mouseX > x - 150 && mouseX < x + 150 && mouseY > y - 20 && mouseY < y + 20) {
+        upgrades[i].effect.run();  // Apply the selected upgrade effect
+        upgradeMenu = false;       // Exit the upgrade menu
+        println("Selected upgrade: " + upgrades[i].name);
+        break;
+      }
+    }
+  } else {
+    // Fire bullets when the mouse is clicked (not during the upgrade menu)
+    player.fireBullet();
+  }
+}
+
+void keyPressed() {
+  if (key == 'r' || key == 'R') {
+    resetGame();  // Call the reset method when 'R' is pressed
+  }
+}
+
+void resetGame() {
+  lastUpgradeScore = 0;  // Track the last score at which upgrades were given
+  frameCount = 0;
+  playerMaxHealth = 100;
+
+  spawnInterval = 120; // Starting interval for enemy spawn (in frames)
+  minSpawnInterval = 20; // Minimum interval for spawning
+  spawnDecayRate = 0.1; // Rate at which the interval decreases
+  decayRate = 0.1; // Controls how fast the interval decreases
+
+  lastIncreaseTime = 0; // Time in seconds
+  baseHealth = 10;           // Starting health for enemies
+  healthIncrementRate = 10;   // Health increase per interval
+  updateInterval = 15; // Time interval (in seconds) for increasing health
+  damIncrementRate = 1;   // Health increase per interval
+  spdIncrementRate = 0.1;   // Speed increase per interval
+  damage = 5; // Base damage for enemies
+  speed = 1; // Base speed for enemies
+
+  gameOver = false;  // Track whether the game is over
+
+  initialSpawnInterval = 300;  // Initial spawn interval (in frames or seconds)
+  initialSpawnDecayRate = 0.1; // Initial spawn decay rate (how much the spawn interval decreases over time)
+  initialBulletDamage = 10;      // Default bullet damage
+  initialAttackSpeed = 1.0;    // Default attack speed
+  initialPlayerHealth = 100;     // Default player health
+  initialScore = 0;              // Default score (could be 0 or any other starting value)
+
+  playerScore = initialScore;
+  playerHealth = initialPlayerHealth;
+
+  spawnInterval = initialSpawnInterval;
+  spawnDecayRate = initialSpawnDecayRate;
+  baseHealth = 10;  // Reset base health for enemies
+  damage = 5;       // Reset damage for enemies
+  speed = 1;        // Reset speed for enemies
+
+  // Reset upgrade system values
+  upgradeThreshold = 200;  // Reset the upgrade threshold
+  upgradeIncrement = 25;   // Reset the upgrade increment
+  upgradeTriggered = false; // Ensure no upgrades are triggered prematurely
+
+  // Reset enemy stats
+  lastIncreaseTime = 0; // Reset the timer for enemy stat increase
+
+  // Clear enemies and bullets
+  enemies.clear();
+  bullets.clear();
+
+  // Reinitialize the player
+  player = new Player();  // Ensures that the player object is fully reset
+
+  // Reset game over state
+  gameOver = false;
+
+  // Reset the upgrade menu flag
+  upgradeMenu = false;
+
+  //// Restart the game loop
+  //loop();  // Restart the game loop (if you are using a loop)
 }
